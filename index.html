@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ROUTER Session</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            perspective: 1200px;
+            overflow: hidden;
+            /* background: linear-gradient(135deg, #0f0f27, #2f2043, #412c64); */
+            background: linear-gradient(135deg, #151a35, #34234b, #49316e);
+            background-size: 400% 400%;
+        }
+
+        .presentation-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .slide {
+            position: absolute;
+            /* width: 90vw; */
+            max-width: 90%;
+            /* height: 90vh; */
+            height: 80%;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.747);
+            opacity: 0;
+            transform: translate3d(0, 0, -300px) rotateX(90deg) scale(0.7);
+            transition: all 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) rotateX(0deg) scale(1);
+        }
+
+        .page-number {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            font-family: 'Arial', sans-serif;
+            z-index: 1000;
+            padding: 10px 20px;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            animation: multicolorGlow 5s infinite;
+        }
+
+        #celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            background: linear-gradient(45deg, #5b2746, #296a66);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: white;
+            opacity: 0.7;
+            transform: rotate(45deg);
+        }
+
+        #emoji-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .emoji {
+            position: absolute;
+            font-size: 50px;
+            opacity: 1;
+            transition: all 3s ease-out;
+        }
+
+
+        @keyframes multicolorGlow {
+            0% {
+                color: #ff0000;
+                text-shadow: 0 0 10px #ff0000;
+            }
+            25% {
+                color: #00ff00;
+                text-shadow: 0 0 10px #00ff00;
+            }
+            50% {
+                color: #0000ff;
+                text-shadow: 0 0 10px #0000ff;
+            }
+            75% {
+                color: #ff00ff;
+                text-shadow: 0 0 10px #ff00ff;
+            }
+            100% {
+                color: #ff0000;
+                text-shadow: 0 0 10px #ff0000;
+            }
+        }
+
+        .slide.slide-in-right {
+            animation: slideInRight 1s forwards;
+        }
+
+        .slide.slide-out-left {
+            animation: slideOutLeft 1s forwards;
+        }
+
+        .slide.slide-in-left {
+            animation: slideInLeft 1s forwards;
+        }
+
+        .slide.slide-out-right {
+            animation: slideOutRight 1s forwards;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translate3d(100%, 0, -300px) rotateY(90deg) scale(0.7);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+            }
+        }
+
+        @keyframes slideOutLeft {
+            from {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translate3d(-100%, 0, -300px) rotateY(-90deg) scale(0.7);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translate3d(-100%, 0, -300px) rotateY(-90deg) scale(0.7);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translate3d(100%, 0, -300px) rotateY(90deg) scale(0.7);
+            }
+        }
+
+        .slide-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .slide-dot {
+            width: 12px;
+            height: 12px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .slide-dot.active {
+            background: white;
+            width: 20px;
+            border-radius: 10px;
+        }
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="celebration"></div>
+    <div id="emoji-container"></div>
+    <canvas id="particle-canvas"></canvas>
+    <div class="page-number">1</div>
+    <div class="presentation-container" id="presentationContainer">
+        <!-- Slides will be dynamically added here -->
+    </div>
+
+    <script>
+        // Array of fun emojis
+        const emojis = [
+            '🎉', '🎊', '🤪', '😂', '🤩', 
+            '🚀', '💥', '✨', '🌈', '🍩', 
+            '🍦', '🍭', '🎈', '🎲', '🤖'
+        ];
+
+        function createEmojiExplosion(event) {
+            if (event.key.toLowerCase() !== 'e') return;
+
+            const container = document.getElementById('emoji-container');
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            // Create multiple emoji bursts
+            for (let i = 0; i < 50; i++) {
+                const emoji = document.createElement('div');
+                
+                // Random emoji from the array
+                emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                emoji.classList.add('emoji');
+
+                // Calculate explosion trajectory
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 500 + 100; // Varied explosion radius
+                
+                const destX = centerX + Math.cos(angle) * distance;
+                const destY = centerY + Math.sin(angle) * distance;
+
+                // Initial positioning
+                emoji.style.left = `${centerX}px`;
+                emoji.style.top = `${centerY}px`;
+                
+                // Trigger reflow to enable transition
+                container.appendChild(emoji);
+                
+                // Force reflow
+                emoji.offsetWidth;
+
+                // Set final position and fade out
+                emoji.style.left = `${destX}px`;
+                emoji.style.top = `${destY}px`;
+                emoji.style.opacity = 0;
+                emoji.style.transform = `scale(${Math.random() * 2 + 0.5})`;
+            }
+
+            // Clear emojis after animation
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+
+        // Add event listener
+        document.addEventListener('keydown', createEmojiExplosion);
+    </script>
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key.toLowerCase() === 's') {
+                startCelebration();
+            }
+        });
+
+        function startCelebration() {
+            const celebration = document.getElementById('celebration');
+            celebration.style.display = 'flex';
+
+            // Create confetti
+            for (let i = 0; i < 100; i++) {
+                createConfetti();
+            }
+
+            // Stop celebration after 3 seconds
+            setTimeout(() => {
+                celebration.style.display = 'none';
+                // Remove any existing confetti
+                document.querySelectorAll('.confetti').forEach(el => el.remove());
+            }, 3000);
+        }
+
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            
+            // Random position
+            confetti.style.left = `${Math.random() * 100}%`;
+            confetti.style.top = `${Math.random() * 100}%`;
+            
+            // Random color
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#6a89cc', '#ff8a5b'];
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Random animation
+            confetti.style.animation = `fall ${3 + Math.random() * 2}s linear infinite`;
+            
+            document.getElementById('celebration').appendChild(confetti);
+        }
+
+        // Add falling animation
+        const styleSheet = document.createElement('style')
+        styleSheet.innerHTML = `
+            @keyframes fall {
+                to {
+                    transform: translateY(100vh) rotate(360deg);
+                }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+    </script>
+
+    <script>
+        class Presentation {
+            constructor(container, totalSlides) {
+                this.container = container;
+                this.totalSlides = totalSlides;
+                this.currentSlideIndex = 0;
+                this.pageNumber = document.querySelector('.page-number');
+                this.particleContainer = [];
+
+                this.renderInitialSlide();
+                this.setupKeyboardNavigation();
+                this.createSlideIndicator();
+                this.setupParticleAnimation();
+            }
+
+            renderInitialSlide() {
+                const slideElement = this.createSlideElement(1);
+                slideElement.classList.add('active');
+                this.container.innerHTML = '';
+                this.container.appendChild(slideElement);
+            }
+
+            createSlideElement(slideNumber) {
+                const slide = document.createElement('div');
+                slide.classList.add('slide');
+                const img = document.createElement('img');
+                img.src = `${slideNumber}.png`;
+                img.alt = `Slide ${slideNumber}`;
+                slide.appendChild(img);
+                return slide;
+            }
+
+            setupKeyboardNavigation() {
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowRight') this.nextSlide();
+                    if (event.key === 'ArrowLeft') this.previousSlide();
+                });
+            }
+
+            createSlideIndicator() {
+                const existingIndicator = this.container.querySelector('.slide-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+
+                const indicator = document.createElement('div');
+                indicator.classList.add('slide-indicator');
+
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.classList.add('slide-dot');
+                    if (i === this.currentSlideIndex) {
+                        dot.classList.add('active');
+                    }
+                    dot.dataset.index = i;
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    indicator.appendChild(dot);
+                }
+
+                this.container.appendChild(indicator);
+            }
+
+            updatePageNumber() {
+                this.pageNumber.textContent = this.currentSlideIndex + 1;
+            }
+
+            setupParticleAnimation() {
+                this.particleInterval = setInterval(() => {
+                    this.createParticle();
+                }, 200);
+            }
+
+            createParticle() {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+
+                const startX = Math.random() * window.innerWidth;
+                const startY = Math.random() * window.innerHeight;
+
+                particle.style.left = `${startX}px`;
+                particle.style.top = `${startY}px`;
+
+                const size = Math.random() * 10;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+
+                this.container.appendChild(particle);
+
+                const animationDuration = Math.random() * 3 + 2;
+                particle.style.animation = `particleAnimation ${animationDuration}s linear`;
+
+                particle.addEventListener('animationend', () => {
+                    this.container.removeChild(particle);
+                });
+            }
+
+            nextSlide() {
+                if (this.currentSlideIndex < this.totalSlides - 1) {
+                    this.changeSlide(this.currentSlideIndex + 1, 'right');
+                }
+            }
+
+            previousSlide() {
+                if (this.currentSlideIndex > 0) {
+                    this.changeSlide(this.currentSlideIndex - 1, 'left');
+                }
+            }
+
+            goToSlide(index) {
+                if (index > this.currentSlideIndex) {
+                    this.changeSlide(index, 'right');
+                } else if (index < this.currentSlideIndex) {
+                    this.changeSlide(index, 'left');
+                }
+            }
+
+            changeSlide(newIndex, direction) {
+                this.container.innerHTML = '';
+                const newSlide = this.createSlideElement(newIndex + 1);
+
+                if (direction === 'right') {
+                    newSlide.classList.add('slide-in-right');
+                } else {
+                    newSlide.classList.add('slide-in-left');
+                }
+
+                this.container.appendChild(newSlide);
+
+                setTimeout(() => {
+                    newSlide.classList.remove(`slide-in-${direction}`);
+                    newSlide.classList.add('active');
+                    this.currentSlideIndex = newIndex;
+                    this.updatePageNumber();
+                    this.createSlideIndicator();
+                }, 1000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('presentationContainer');
+            const totalSlides = 9; 
+            new Presentation(container, totalSlides);
+        });
+    </script>
+
+<script>
+    class FluidParticleSystem {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.particles = [];
+            this.width = canvas.width;
+            this.height = canvas.height;
+            this.centerX = this.width / 2;
+            this.centerY = this.height / 2;
+            this.animationFrameId = null;
+        }
+
+        setup() {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+            this.width = this.canvas.width;
+            this.height = this.canvas.height;
+            this.centerX = this.width / 2;
+            this.centerY = this.height / 2;
+        }
+
+        createParticles(count) {
+            this.particles = [];
+            for (let i = 0; i < count; i++) {
+                this.particles.push(this.createParticle());
+            }
+        }
+
+        createParticle() {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 300 + 100;
+            
+            return {
+                x: this.centerX,
+                y: this.centerY,
+                radius: Math.random() * 3 + 1,
+                color: this.getGradientColor(),
+                speedX: Math.cos(angle) * (Math.random() * 5 + 2),
+                speedY: Math.sin(angle) * (Math.random() * 5 + 2),
+                alpha: 1,
+                maxDistance: radius
+            };
+        }
+
+        getGradientColor() {
+            const colors = [
+                'rgba(58, 123, 213, 0.8)',   // Soft Blue
+                'rgba(124, 77, 255, 0.8)',   // Purple
+                'rgba(0, 212, 199, 0.8)',    // Turquoise
+                'rgba(87, 204, 153, 0.8)',   // Mint Green
+                'rgba(255, 94, 94, 0.8)'     // Soft Red
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        update() {
+            this.ctx.clearRect(0, 0, this.width, this.height);
+            
+            this.particles.forEach((p, index) => {
+                // Movement with fluid-like motion
+                p.x += p.speedX * (1 + Math.sin(index * 0.1) * 0.5);
+                p.y += p.speedY * (1 + Math.cos(index * 0.1) * 0.5);
+                
+                // Distance from center
+                const dx = p.x - this.centerX;
+                const dy = p.y - this.centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Fade out particles as they move away
+                p.alpha = 1 - (distance / p.maxDistance);
+                
+                // Draw particle
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                this.ctx.fillStyle = p.color.replace('0.8', p.alpha.toString());
+                this.ctx.fill();
+                
+                // Remove particles that are too far or faded
+                if (p.alpha <= 0 || distance > p.maxDistance) {
+                    this.particles[index] = this.createParticle();
+                }
+            });
+
+            this.animationFrameId = requestAnimationFrame(() => this.update());
+        }
+
+        start() {
+            this.setup();
+            this.createParticles(200);
+            this.update();
+        }
+
+        stop() {
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                this.animationFrameId = null;
+            }
+        }
+    }
+
+    const canvas = document.getElementById('particle-canvas');
+    let particleSystem = null;
+    let isAnimationRunning = false;
+
+    function triggerFluidAnimation(event) {
+        if (event.key.toLowerCase() !== 'f') return;
+        
+        if (!isAnimationRunning) {
+            // Start animation
+            particleSystem = new FluidParticleSystem(canvas);
+            particleSystem.start();
+            isAnimationRunning = true;
+        } else {
+            // Stop animation
+            if (particleSystem) {
+                particleSystem.stop();
+                particleSystem = null;
+            }
+            isAnimationRunning = false;
+        }
+    }
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+        if (particleSystem) {
+            particleSystem.setup();
+        }
+    });
+
+    // Key press event
+    document.addEventListener('keydown', triggerFluidAnimation);
+</script>
+
+<style>
+    @keyframes particleAnimation {
+        from {
+            transform: 
+                translate(0, 0) 
+                scale(1);
+            opacity: 0.7;
+        }
+        to {
+            transform: 
+                translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px) 
+                scale(0);
+            opacity: 0;
+        }
+    }
+</style>
+</body>
+</html>
